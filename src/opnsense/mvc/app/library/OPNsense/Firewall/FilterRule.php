@@ -288,7 +288,38 @@ class FilterRule extends Rule
     {
         $ruleTxt = '';
         foreach ($this->parseFilterRules() as $rule) {
-            $ruleTxt .= $this->ruleToText($this->procorder, $rule) . "\n";
+            $ruleTxt .= $this->ruleToText($this->procorder, $rule);
+
+            //拼接modbus
+            if (isset($rule['modbus-type']) && $rule['to_port'] == '502' ) {
+                $ruleTxt.= ' dpi modbus ';
+                if ($rule['modbus-type'] == 'read') {
+                    $ruleTxt.= '"1"';
+                } else if ($rule['modbus-type'] == 'write') {
+                    $ruleTxt.= '"2"';
+                } else {
+                    $ruleTxt.= '"0"';
+                }
+                if ($rule['modbus-type'] == 'read') {
+                    if ($rule['modbus-function-code'] != 'all') {
+                        $ruleTxt.= ' '.'"'.$rule['modbus-function-code'].'"';
+                        $ruleTxt.= ' '.'"'.$rule['modbus_read_addr'].'"'.' '.'"'.$rule['modbus_read_length'].'"';
+                    } else {
+                        $ruleTxt.= ' "0" "0" "0"';
+                    }
+                } else if ($rule['modbus-type'] == 'write') {
+
+                    if ($rule['modbus-function-code'] != 'all') {
+                        $ruleTxt.= ' '.'"'.$rule['modbus-function-code'].'"';
+                        $ruleTxt.= ' '.'"'.$rule['modbus_write_addr'].'"'.' '.'"'.$rule['modbus_write_value'].'"';
+                    } else {
+                        $ruleTxt.= ' "0" "0" "0"';
+                    }
+                }
+
+            }
+
+            $ruleTxt.= "\n";
         }
         return $ruleTxt;
     }

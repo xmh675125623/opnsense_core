@@ -131,6 +131,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'tcpflags2',
         'tcpflags_any',
         'type',
+        'modbus-type',
+        'modbus-function-code',
+        'modbus_read_addr',
+        'modbus_read_length',
+        'modbus_write_addr',
+        'modbus_write_value'
     );
 
     $pconfig = array();
@@ -574,6 +580,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
           $pconfig['dstmask'], !empty($pconfig['dstnot']),
           $pconfig['dstbeginport'], $pconfig['dstendport']);
 
+        $filterent['modbus-type'] = $pconfig['modbus-type'];
+        if (!empty($pconfig['modbus-type']) && $pconfig['modbus-type'] != 'all') {
+            $filterent['modbus-function-code'] = $pconfig['modbus-function-code'];
+            if ($pconfig['modbus-type'] == 'read' && $pconfig['modbus-function-code'] != 'all') {
+                $filterent['modbus_read_addr'] = $pconfig['modbus_read_addr'];
+                $filterent['modbus_read_length'] = $pconfig['modbus_read_length'];
+            } else if ($pconfig['modbus-type'] == 'write' && $pconfig['modbus-function-code'] != 'all') {
+                $filterent['modbus_write_addr'] = $pconfig['modbus_write_addr'];
+                $filterent['modbus_write_value'] = $pconfig['modbus_write_value'];
+            }
+        }
 
         $filterent['updated'] = make_config_revision_entry();
 
@@ -701,6 +718,58 @@ include("head.inc");
 
       });
 
+
+      // modbus 读写选择控制
+      $("#modbus_type").change(function () {
+          $("#modbus_function_code").val('all');
+          $('#modbus_function_code').selectpicker('refresh');
+          $(".modbus_read_addr").addClass("hidden");
+          $(".modbus_read_length").addClass("hidden");
+          $(".modbus_write_addr").addClass("hidden");
+          $(".modbus_write_value").addClass("hidden");
+
+          if ($("#modbus_type").val() == 'all') {
+              $(".modbus-function").addClass("hidden");
+
+          } else {
+              $(".modbus-function").removeClass("hidden");
+          }
+
+          if ($("#modbus_type").val() == 'read') {
+              $(".modbus-function-code-write").attr("disabled",true)
+              $(".modbus-function-code-read").attr("disabled",false)
+          }
+
+          if ($("#modbus_type").val() == 'write') {
+              $(".modbus-function-code-write").attr("disabled",false)
+              $(".modbus-function-code-read").attr("disabled",true)
+          }
+      });
+
+      $("#modbus_function_code").change(function () {
+          if ($("#modbus_function_code").val() == 'all') {
+              $(".modbus_read_addr").addClass("hidden");
+              $(".modbus_read_length").addClass("hidden");
+              $(".modbus_write_addr").addClass("hidden");
+              $(".modbus_write_value").addClass("hidden");
+          } else {
+              if ($("#modbus_type").val() == 'read') {
+                  $(".modbus_read_addr").removeClass("hidden");
+                  $(".modbus_read_length").removeClass("hidden");
+                  $(".modbus_write_addr").addClass("hidden");
+                  $(".modbus_write_value").addClass("hidden");
+              }
+
+              if ($("#modbus_type").val() == 'write') {
+                  $(".modbus_read_addr").addClass("hidden");
+                  $(".modbus_read_length").addClass("hidden");
+                  $(".modbus_write_addr").removeClass("hidden");
+                  $(".modbus_write_value").removeClass("hidden");
+              }
+          }
+
+      })
+
       // IPv4/IPv6 select
       hook_ipv4v6('ipv4v6net', 'network-id');
 
@@ -713,6 +782,20 @@ include("head.inc");
       $("#dstbeginport").change(function(){
           $('#dstendport').prop('selectedIndex', $("#dstbeginport").prop('selectedIndex') );
           $('#dstendport').selectpicker('refresh');
+
+          if ($("#dstbeginport").val() == 502 && $("#dstbeginport").val() == $("#dstendport").val()) {
+              $('.modbus-param').removeClass('hidden');
+          } else {
+              $('.modbus-param').addClass('hidden');
+          }
+      });
+
+      $("#dstendport").change(function(){
+          if ($("#dstbeginport").val() == 502 && $("#dstbeginport").val() == $("#dstendport").val()) {
+              $('.modbus-param').removeClass('hidden');
+          } else {
+              $('.modbus-param').addClass('hidden');
+          }
       });
 
       $(".input_tcpflags_any").click(function(){
@@ -1680,6 +1763,70 @@ endforeach;?>
                           </div>
                         </td>
                     </tr>
+
+                      <tr class="opt_advanced hidden">
+                          <td class="modbus-param <?= $pconfig['dstbeginport'] == '502' && $pconfig['dstendport'] == 502 ? "" : "hidden"; ?>">MODBUS参数</td>
+                          <td class="modbus-param <?= $pconfig['dstbeginport'] == '502' && $pconfig['dstendport'] == 502 ? "" : "hidden"; ?>">
+                              <table class="table table-condensed">
+                                  <tr class="modbus-type">
+                                      <td>MODBUS读写方式</td>
+                                      <td>
+                                          <select name="modbus-type" id="modbus_type" class="selectpicker" data-live-search="true" data-size="5" >
+                                              <option value="all" <?=$pconfig['modbus-type'] == "all" ?  "selected=\"selected\"" :""; ?>>all</option>
+                                              <option value="read" <?=$pconfig['modbus-type'] == "read" ?  "selected=\"selected\"" :""; ?>>read</option>
+                                              <option value="write" <?=$pconfig['modbus-type'] == "write" ?  "selected=\"selected\"" :""; ?>>write</option>
+                                          </select>
+                                      </td>
+                                  </tr>
+                                  <tr class="modbus-function <?= $pconfig['modbus-type'] == 'read' || $pconfig['modbus-type'] == 'write' ? "" : "hidden"; ?>">
+                                      <td>MODBUS功能码</td>
+                                      <td>
+                                          <select name="modbus-function-code" id="modbus_function_code" class="selectpicker" data-live-search="true" data-size="5" >
+                                              <option value="all" <?=$pconfig['modbus-function-code'] == "all" ?  "selected=\"selected\"" :""; ?>>all</option>
+                                              <option value="1" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "1" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read Coils</option>
+                                              <option value="2" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "2" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read Discrete Inputs</option>
+                                              <option value="3" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "3" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read Holding Registers</option>
+                                              <option value="4" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "4" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read Input Registers</option>
+                                              <option value="5" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "5" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Write Single Coil</option>
+                                              <option value="6" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "6" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Write Single Register</option>
+                                              <option value="15" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "15" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Write Multiple Coils</option>
+                                              <option value="16" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "16" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Write Multiple registers</option>
+                                              <option value="20" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "20" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read File Record</option>
+                                              <option value="21" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "21" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Write File Record</option>
+                                              <option value="22" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "22" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Mask Write Register</option>
+                                              <option value="23" class="modbus-function-code-read-write" <?=$pconfig['modbus-function-code'] == "23" ?  "selected=\"selected\"" :""; ?>>Read/Write Multiple registers</option>
+                                              <option value="43" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "43" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read Device Identification</option>
+                                          </select>
+                                      </td>
+                                  </tr>
+
+                                  <tr class="modbus_read_addr <?= $pconfig['modbus-type'] == 'read' && $pconfig['modbus-function-code'] != 'all' ? "" : "hidden"; ?>">
+                                      <td>MODBUS读起始地址</td>
+                                      <td>
+                                          <input name="modbus_read_addr" type="text" value="<?= $pconfig['modbus_read_addr']; ?>"/>
+                                      </td>
+                                  </tr>
+                                  <tr class="modbus_read_length <?= $pconfig['modbus-type'] == 'read' && $pconfig['modbus-function-code'] != 'all' ? "" : "hidden"; ?>">
+                                      <td>MODBUS读长度</td>
+                                      <td>
+                                          <input name="modbus_read_length" type="text" value="<?= $pconfig['modbus_read_length']; ?>"/>
+                                      </td>
+                                  </tr>
+                                  <tr class="modbus_write_addr <?= $pconfig['modbus-type'] == 'write' && $pconfig['modbus-function-code'] != 'all' ? "" : "hidden"; ?>">
+                                      <td>MODBUS写起始地址</td>
+                                      <td>
+                                          <input name="modbus_write_addr" type="text" value="<?= $pconfig['modbus_write_addr']; ?>"/>
+                                      </td>
+                                  </tr>
+                                  <tr class="modbus_write_value <?= $pconfig['modbus-type'] == 'write' && $pconfig['modbus-function-code'] != 'all' ? "" : "hidden"; ?>">
+                                      <td>MODBUS写值</td>
+                                      <td>
+                                          <input name="modbus_write_value" type="text" value="<?= $pconfig['modbus_write_value']; ?>"/>
+                                      </td>
+                                  </tr>
+                              </table>
+                          </td>
+                      </tr>
 <?php
                     $has_created_time = (isset($a_filter[$id]['created']) && is_array($a_filter[$id]['created']));
                     $has_updated_time = (isset($a_filter[$id]['updated']) && is_array($a_filter[$id]['updated']));
