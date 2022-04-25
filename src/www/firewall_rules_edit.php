@@ -131,12 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'tcpflags2',
         'tcpflags_any',
         'type',
-        'modbus-type',
-        'modbus-function-code',
-        'modbus_read_addr',
-        'modbus_read_length',
-        'modbus_write_addr',
-        'modbus_write_value'
+        'modbus-value'
     );
 
     $pconfig = array();
@@ -161,6 +156,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (isset($id) && isset($a_filter[$configId]['associated-rule-id'])) {
             // do not link on rule copy.
             $pconfig['associated-rule-id'] = $a_filter[$configId]['associated-rule-id'];
+        }
+
+        if (!empty($pconfig['modbus-value'])) {
+            $modbus_item_text = '';
+            $pconfig['modbus_item'] = [];
+            $modbus_item = json_decode($pconfig['modbus-value']);
+            for ($x = 0; $x < count($modbus_item); $x ++) {
+                $item = $modbus_item[$x];
+                $item_json = json_decode($item, true);
+                $item_json['modbus_value'] = $item;
+                $pconfig['modbus_item'][$x] = $item_json;
+            }
         }
     } else {
         /* defaults */
@@ -580,17 +587,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
           $pconfig['dstmask'], !empty($pconfig['dstnot']),
           $pconfig['dstbeginport'], $pconfig['dstendport']);
 
-        $filterent['modbus-type'] = $pconfig['modbus-type'];
-        if (!empty($pconfig['modbus-type']) && $pconfig['modbus-type'] != 'all') {
-            $filterent['modbus-function-code'] = $pconfig['modbus-function-code'];
-            if ($pconfig['modbus-type'] == 'read' && $pconfig['modbus-function-code'] != 'all') {
-                $filterent['modbus_read_addr'] = $pconfig['modbus_read_addr'];
-                $filterent['modbus_read_length'] = $pconfig['modbus_read_length'];
-            } else if ($pconfig['modbus-type'] == 'write' && $pconfig['modbus-function-code'] != 'all') {
-                $filterent['modbus_write_addr'] = $pconfig['modbus_write_addr'];
-                $filterent['modbus_write_value'] = $pconfig['modbus_write_value'];
-            }
-        }
+        $filterent['modbus-value'] = $pconfig['modbus_value'];
 
         $filterent['updated'] = make_config_revision_entry();
 
@@ -782,20 +779,6 @@ include("head.inc");
       $("#dstbeginport").change(function(){
           $('#dstendport').prop('selectedIndex', $("#dstbeginport").prop('selectedIndex') );
           $('#dstendport').selectpicker('refresh');
-
-          if ($("#dstbeginport").val() == 502 && $("#dstbeginport").val() == $("#dstendport").val()) {
-              $('.modbus-param').removeClass('hidden');
-          } else {
-              $('.modbus-param').addClass('hidden');
-          }
-      });
-
-      $("#dstendport").change(function(){
-          if ($("#dstbeginport").val() == 502 && $("#dstbeginport").val() == $("#dstendport").val()) {
-              $('.modbus-param').removeClass('hidden');
-          } else {
-              $('.modbus-param').addClass('hidden');
-          }
       });
 
       $(".input_tcpflags_any").click(function(){
@@ -821,8 +804,68 @@ include("head.inc");
       $("#toggleAdvanced").click();
       <?php endif;?>
 
+
+      $("#addModbusBtn").click(function () {
+          var modbusObj = {};
+          var modbusType = $("#modbus_type").val();
+          var modbusFunctionCode = $("#modbus_function_code").val();
+          var modbusReadAddr = $("#modbus_read_addr").val();
+          var modbusReadLength = $("#modbus_read_length").val();
+          var modbusWriteAddr = $("#modbus_write_addr").val();
+          var modbusWriteValue = $("#modbus_write_value").val();
+          modbusObj.modbus_type = modbusType;
+          modbusObj.modbus_read_addr = "";
+          modbusObj.modbus_read_length = "";
+          modbusObj.modbus_write_addr = "";
+          modbusObj.modbus_write_value = "";
+          modbusObj.modbus_function_code = modbusFunctionCode;
+          if (modbusType == "all") {
+              modbusObj.modbus_function_code = "";
+          } else if (modbusType == "read") {
+              if (modbusFunctionCode != "all") {
+                  modbusObj.modbus_read_addr = modbusReadAddr;
+                  modbusObj.modbus_read_length = modbusReadLength;
+              }
+          } else if (modbusType == "write") {
+              if (modbusFunctionCode != "all") {
+                  modbusObj.modbus_write_addr = modbusWriteAddr;
+                  modbusObj.modbus_write_value = modbusWriteValue;
+              }
+          }
+
+          var valueTr = $(('<tr class="modbus_values">' +
+              '<td>'+modbusObj.modbus_type+'</td>' +
+              '<td>'+modbusObj.modbus_function_code+'</td>' +
+              '<td>'+modbusObj.modbus_read_addr+'</td>' +
+              '<td>'+modbusObj.modbus_read_length+'</td>' +
+              '<td>'+modbusObj.modbus_write_addr+'</td>' +
+              '<td>'+modbusObj.modbus_write_value+'</td>' +
+              '<td><a title="删除" class="btn btn-default btn-xs" onclick="removeModbus(this)"><i class="fa fa-trash fa-fw"></i></a></td>' +
+              '</tr>'))
+          valueTr.attr('value', JSON.stringify(modbusObj));
+
+          $("#modbus_param").append(valueTr);
+          $("#myModal").modal('hide');
+
+          var values = [];
+          $(".modbus_values").each(function (index,e) {
+              values.push($(e).attr('value'));
+          })
+          $("#modbus_value_input").val(JSON.stringify(values));
+
+      });
+
       formatTokenizersUI();
   });
+
+  function removeModbus(e) {
+        $(e).parent().parent().remove();
+        var values = [];
+        $(".modbus_values").each(function (index,e) {
+            values.push($(e).attr('value'));
+        })
+        $("#modbus_value_input").val(JSON.stringify(values));
+  }
 
   </script>
   <?php include("fbegin.inc"); ?>
@@ -1765,65 +1808,42 @@ endforeach;?>
                     </tr>
 
                       <tr class="opt_advanced hidden">
-                          <td class="modbus-param <?= $pconfig['dstbeginport'] == '502' && $pconfig['dstendport'] == 502 ? "" : "hidden"; ?>">MODBUS参数</td>
-                          <td class="modbus-param <?= $pconfig['dstbeginport'] == '502' && $pconfig['dstendport'] == 502 ? "" : "hidden"; ?>">
+                          <td>
+                              MODBUS参数
+                              <a  data-toggle="modal" data-target="#myModal" title="添加" class="btn btn-default btn-xs">
+                                  <i class="fa fa-plus-circle fa-fw"></i>
+                              </a>
+                          </td>
+                          <td>
+                              <input name="modbus_value" id="modbus_value_input" type="hidden" value="<?= !empty($pconfig['modbus-value']) ? $pconfig['modbus-value'] :""; ?>"/>
                               <table class="table table-condensed">
-                                  <tr class="modbus-type">
-                                      <td>MODBUS读写方式</td>
-                                      <td>
-                                          <select name="modbus-type" id="modbus_type" class="selectpicker" data-live-search="true" data-size="5" >
-                                              <option value="all" <?=$pconfig['modbus-type'] == "all" ?  "selected=\"selected\"" :""; ?>>all</option>
-                                              <option value="read" <?=$pconfig['modbus-type'] == "read" ?  "selected=\"selected\"" :""; ?>>read</option>
-                                              <option value="write" <?=$pconfig['modbus-type'] == "write" ?  "selected=\"selected\"" :""; ?>>write</option>
-                                          </select>
-                                      </td>
+                                  <thead>
+                                  <tr>
+                                      <td>读写方式</td>
+                                      <td>功能码</td>
+                                      <td>读起始地址</td>
+                                      <td>读长度</td>
+                                      <td>写起始地址</td>
+                                      <td>写值</td>
+                                      <td>操作</td>
                                   </tr>
-                                  <tr class="modbus-function <?= $pconfig['modbus-type'] == 'read' || $pconfig['modbus-type'] == 'write' ? "" : "hidden"; ?>">
-                                      <td>MODBUS功能码</td>
-                                      <td>
-                                          <select name="modbus-function-code" id="modbus_function_code" class="selectpicker" data-live-search="true" data-size="5" >
-                                              <option value="all" <?=$pconfig['modbus-function-code'] == "all" ?  "selected=\"selected\"" :""; ?>>all</option>
-                                              <option value="1" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "1" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read Coils</option>
-                                              <option value="2" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "2" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read Discrete Inputs</option>
-                                              <option value="3" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "3" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read Holding Registers</option>
-                                              <option value="4" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "4" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read Input Registers</option>
-                                              <option value="5" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "5" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Write Single Coil</option>
-                                              <option value="6" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "6" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Write Single Register</option>
-                                              <option value="15" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "15" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Write Multiple Coils</option>
-                                              <option value="16" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "16" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Write Multiple registers</option>
-                                              <option value="20" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "20" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read File Record</option>
-                                              <option value="21" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "21" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Write File Record</option>
-                                              <option value="22" class="modbus-function-code-write" <?=$pconfig['modbus-function-code'] == "22" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'write' ? "" : "disabled"; ?>>Mask Write Register</option>
-                                              <option value="23" class="modbus-function-code-read-write" <?=$pconfig['modbus-function-code'] == "23" ?  "selected=\"selected\"" :""; ?>>Read/Write Multiple registers</option>
-                                              <option value="43" class="modbus-function-code-read" <?=$pconfig['modbus-function-code'] == "43" ?  "selected=\"selected\"" :""; ?> <?= $pconfig['modbus-type'] == 'read' ? "" : "disabled"; ?>>Read Device Identification</option>
-                                          </select>
-                                      </td>
-                                  </tr>
-
-                                  <tr class="modbus_read_addr <?= $pconfig['modbus-type'] == 'read' && $pconfig['modbus-function-code'] != 'all' ? "" : "hidden"; ?>">
-                                      <td>MODBUS读起始地址</td>
-                                      <td>
-                                          <input name="modbus_read_addr" type="text" value="<?= $pconfig['modbus_read_addr']; ?>"/>
-                                      </td>
-                                  </tr>
-                                  <tr class="modbus_read_length <?= $pconfig['modbus-type'] == 'read' && $pconfig['modbus-function-code'] != 'all' ? "" : "hidden"; ?>">
-                                      <td>MODBUS读长度</td>
-                                      <td>
-                                          <input name="modbus_read_length" type="text" value="<?= $pconfig['modbus_read_length']; ?>"/>
-                                      </td>
-                                  </tr>
-                                  <tr class="modbus_write_addr <?= $pconfig['modbus-type'] == 'write' && $pconfig['modbus-function-code'] != 'all' ? "" : "hidden"; ?>">
-                                      <td>MODBUS写起始地址</td>
-                                      <td>
-                                          <input name="modbus_write_addr" type="text" value="<?= $pconfig['modbus_write_addr']; ?>"/>
-                                      </td>
-                                  </tr>
-                                  <tr class="modbus_write_value <?= $pconfig['modbus-type'] == 'write' && $pconfig['modbus-function-code'] != 'all' ? "" : "hidden"; ?>">
-                                      <td>MODBUS写值</td>
-                                      <td>
-                                          <input name="modbus_write_value" type="text" value="<?= $pconfig['modbus_write_value']; ?>"/>
-                                      </td>
-                                  </tr>
+                                  </thead>
+                                  <tbody  id="modbus_param">
+                                    <?php
+                                    if (!empty($pconfig['modbus_item'])) {
+                                        foreach ($pconfig['modbus_item'] as $item) {
+                                            $modbus_item_text = '<tr class="modbus_values" value="'.$item['modbus_value'].'"><td>'.$item['modbus_type'].'</td>' .
+                                                '<td>'.$item['modbus_function_code'].'</td>' .
+                                                '<td>'.$item['modbus_read_addr'].'</td>' .
+                                                '<td>'.$item['modbus_read_length'].'</td>' .
+                                                '<td>'.$item['modbus_write_addr'].'</td>' .
+                                                '<td>'.$item['modbus_write_value'].'</td>' .
+                                                '<td><a title="删除" class="btn btn-default btn-xs" onclick="removeModbus(this)"><i class="fa fa-trash fa-fw"></i></a></td></tr>';
+                                            echo "{$modbus_item_text}";
+                                        }
+                                    }
+                                    ?>
+                                  </tbody>
                               </table>
                           </td>
                       </tr>
@@ -1869,5 +1889,81 @@ endforeach;?>
           </section>
         </div>
       </div>
+
+        <!-- MODBUS参数添加Modal -->
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <h3 class="modal-title" id="myModalLabel">MODBUS参数添加</h3>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table table-condensed">
+                            <tr class="modbus-type">
+                                <td>MODBUS读写方式</td>
+                                <td>
+                                    <select name="modbus-type" id="modbus_type" class="selectpicker" data-live-search="true" data-size="5" >
+                                        <option value="all">all</option>
+                                        <option value="read">read</option>
+                                        <option value="write">write</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr class="modbus-function hidden">
+                                <td>MODBUS功能码</td>
+                                <td>
+                                    <select name="modbus-function-code" id="modbus_function_code" class="selectpicker" data-live-search="true" data-size="5" >
+                                        <option value="all">all</option>
+                                        <option value="1" class="modbus-function-code-read">Read Coils</option>
+                                        <option value="2" class="modbus-function-code-read">Read Discrete Inputs</option>
+                                        <option value="3" class="modbus-function-code-read">Read Holding Registers</option>
+                                        <option value="4" class="modbus-function-code-read">Read Input Registers</option>
+                                        <option value="5" class="modbus-function-code-write">Write Single Coil</option>
+                                        <option value="6" class="modbus-function-code-write">Write Single Register</option>
+                                        <option value="15" class="modbus-function-code-write">Write Multiple Coils</option>
+                                        <option value="16" class="modbus-function-code-write">Write Multiple registers</option>
+                                        <option value="20" class="modbus-function-code-read">Read File Record</option>
+                                        <option value="21" class="modbus-function-code-write">Write File Record</option>
+                                        <option value="22" class="modbus-function-code-write">Mask Write Register</option>
+                                        <option value="23" class="modbus-function-code-read-write">Read/Write Multiple registers</option>
+                                        <option value="43" class="modbus-function-code-read">Read Device Identification</option>
+                                    </select>
+                                </td>
+                            </tr>
+
+                            <tr class="modbus_read_addr hidden">
+                                <td>MODBUS读起始地址</td>
+                                <td>
+                                    <input name="modbus_read_addr" id="modbus_read_addr" type="text" value=""/>
+                                </td>
+                            </tr>
+                            <tr class="modbus_read_length hidden">
+                                <td>MODBUS读长度</td>
+                                <td>
+                                    <input name="modbus_read_length" id="modbus_read_length" type="text" value=""/>
+                                </td>
+                            </tr>
+                            <tr class="modbus_write_addr hidden">
+                                <td>MODBUS写起始地址</td>
+                                <td>
+                                    <input name="modbus_write_addr" id="modbus_write_addr" type="text" value=""/>
+                                </td>
+                            </tr>
+                            <tr class="modbus_write_value hidden">
+                                <td>MODBUS写值</td>
+                                <td>
+                                    <input name="modbus_write_value" id="modbus_write_value" type="text" value=""/>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" id="addModbusBtn">添加</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 <?php include("foot.inc"); ?>
