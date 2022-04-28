@@ -1427,6 +1427,7 @@ include("head.inc");
                                   <td>读起始地址</td>
                                   <td>读长度</td>
                                   <td>写起始地址</td>
+                                  <td>写长度</td>
                                   <td>写值</td>
                                   <td>操作</td>
                               </tr>
