@@ -723,6 +723,7 @@ include("head.inc");
           $(".modbus_read_addr").addClass("hidden");
           $(".modbus_read_length").addClass("hidden");
           $(".modbus_write_addr").addClass("hidden");
+          $(".modbus_write_length").addClass("hidden");
           $(".modbus_write_value").addClass("hidden");
 
           if ($("#modbus_type").val() == 'all') {
@@ -748,12 +749,14 @@ include("head.inc");
               $(".modbus_read_addr").addClass("hidden");
               $(".modbus_read_length").addClass("hidden");
               $(".modbus_write_addr").addClass("hidden");
+              $(".modbus_write_length").addClass("hidden");
               $(".modbus_write_value").addClass("hidden");
           } else {
               if ($("#modbus_type").val() == 'read') {
                   $(".modbus_read_addr").removeClass("hidden");
                   $(".modbus_read_length").removeClass("hidden");
                   $(".modbus_write_addr").addClass("hidden");
+                  $(".modbus_write_length").addClass("hidden");
                   $(".modbus_write_value").addClass("hidden");
               }
 
@@ -761,6 +764,7 @@ include("head.inc");
                   $(".modbus_read_addr").addClass("hidden");
                   $(".modbus_read_length").addClass("hidden");
                   $(".modbus_write_addr").removeClass("hidden");
+                  $(".modbus_write_length").removeClass("hidden");
                   $(".modbus_write_value").removeClass("hidden");
               }
           }
@@ -793,6 +797,11 @@ include("head.inc");
           $(".opt_advanced").toggleClass("visible hidden");
       });
 
+      // show / hide dpi Options
+      $("#toggleDpi").click(function(){
+          $(".opt_dpi").toggleClass("visible hidden");
+      });
+
       // init
       $("#proto").change();
       <?php if ( (!empty($pconfig['srcbeginport']) && $pconfig['srcbeginport'] != "any") || (!empty($pconfig['srcendport']) && $pconfig['srcendport'] != "any") ): ?>
@@ -812,11 +821,13 @@ include("head.inc");
           var modbusReadAddr = $("#modbus_read_addr").val();
           var modbusReadLength = $("#modbus_read_length").val();
           var modbusWriteAddr = $("#modbus_write_addr").val();
+          var modbusWriteAddr = $("#modbus_write_length").val();
           var modbusWriteValue = $("#modbus_write_value").val();
           modbusObj.modbus_type = modbusType;
           modbusObj.modbus_read_addr = "";
           modbusObj.modbus_read_length = "";
           modbusObj.modbus_write_addr = "";
+          modbusObj.modbus_write_length = "";
           modbusObj.modbus_write_value = "";
           modbusObj.modbus_function_code = modbusFunctionCode;
           if (modbusType == "all") {
@@ -829,6 +840,7 @@ include("head.inc");
           } else if (modbusType == "write") {
               if (modbusFunctionCode != "all") {
                   modbusObj.modbus_write_addr = modbusWriteAddr;
+                  modbusObj.modbus_write_length = modbusWriteAddr;
                   modbusObj.modbus_write_value = modbusWriteValue;
               }
           }
@@ -839,6 +851,7 @@ include("head.inc");
               '<td>'+modbusObj.modbus_read_addr+'</td>' +
               '<td>'+modbusObj.modbus_read_length+'</td>' +
               '<td>'+modbusObj.modbus_write_addr+'</td>' +
+              '<td>'+modbusObj.modbus_write_length+'</td>' +
               '<td>'+modbusObj.modbus_write_value+'</td>' +
               '<td><a title="删除" class="btn btn-default btn-xs" onclick="removeModbus(this)"><i class="fa fa-trash fa-fw"></i></a></td>' +
               '</tr>'))
@@ -1389,6 +1402,56 @@ include("head.inc");
                       </div>
                     </td>
                   </tr>
+
+                  <tr>
+                      <td>DPI Options</td>
+                      <td>
+                          <input id="toggleDpi" type="button" class="btn btn-default" value="<?= html_safe(gettext('Show/Hide')) ?>" />
+                      </td>
+                  </tr>
+
+                  <tr class="opt_dpi <?= !empty($pconfig['modbus-value']) ? "" :"hidden"; ?>">
+                      <td>
+                          MODBUS参数
+                          <a  data-toggle="modal" data-target="#myModal" title="添加" class="btn btn-default btn-xs">
+                              <i class="fa fa-plus-circle fa-fw"></i>
+                          </a>
+                      </td>
+                      <td>
+                          <input name="modbus_value" id="modbus_value_input" type="hidden" value="<?= !empty($pconfig['modbus-value']) ? $pconfig['modbus-value'] :""; ?>"/>
+                          <table class="table table-condensed">
+                              <thead>
+                              <tr>
+                                  <td>读写方式</td>
+                                  <td>功能码</td>
+                                  <td>读起始地址</td>
+                                  <td>读长度</td>
+                                  <td>写起始地址</td>
+                                  <td>写值</td>
+                                  <td>操作</td>
+                              </tr>
+                              </thead>
+                              <tbody  id="modbus_param">
+                              <?php
+                              if (!empty($pconfig['modbus_item'])) {
+                                  foreach ($pconfig['modbus_item'] as $item) {
+                                      $modbus_item_text = '<tr class="modbus_values" value="'.$item['modbus_value'].'"><td>'.$item['modbus_type'].'</td>' .
+                                          '<td>'.$item['modbus_function_code'].'</td>' .
+                                          '<td>'.$item['modbus_read_addr'].'</td>' .
+                                          '<td>'.$item['modbus_read_length'].'</td>' .
+                                          '<td>'.$item['modbus_write_addr'].'</td>' .
+                                          '<td>'.$item['modbus_write_length'].'</td>' .
+                                          '<td>'.$item['modbus_write_value'].'</td>' .
+                                          '<td><a title="删除" class="btn btn-default btn-xs" onclick="removeModbus(this)"><i class="fa fa-trash fa-fw"></i></a></td></tr>';
+                                      echo "{$modbus_item_text}";
+                                  }
+                              }
+                              ?>
+                              </tbody>
+                          </table>
+                      </td>
+                  </tr>
+
                   <tr>
                     <td><a id="help_for_log" href="#" class="showhelp"><i class="fa fa-info-circle"></i></a> <?=gettext("Log");?></td>
                     <td>
@@ -1806,47 +1869,6 @@ endforeach;?>
                           </div>
                         </td>
                     </tr>
-
-                      <tr class="opt_advanced hidden">
-                          <td>
-                              MODBUS参数
-                              <a  data-toggle="modal" data-target="#myModal" title="添加" class="btn btn-default btn-xs">
-                                  <i class="fa fa-plus-circle fa-fw"></i>
-                              </a>
-                          </td>
-                          <td>
-                              <input name="modbus_value" id="modbus_value_input" type="hidden" value="<?= !empty($pconfig['modbus-value']) ? $pconfig['modbus-value'] :""; ?>"/>
-                              <table class="table table-condensed">
-                                  <thead>
-                                  <tr>
-                                      <td>读写方式</td>
-                                      <td>功能码</td>
-                                      <td>读起始地址</td>
-                                      <td>读长度</td>
-                                      <td>写起始地址</td>
-                                      <td>写值</td>
-                                      <td>操作</td>
-                                  </tr>
-                                  </thead>
-                                  <tbody  id="modbus_param">
-                                    <?php
-                                    if (!empty($pconfig['modbus_item'])) {
-                                        foreach ($pconfig['modbus_item'] as $item) {
-                                            $modbus_item_text = '<tr class="modbus_values" value="'.$item['modbus_value'].'"><td>'.$item['modbus_type'].'</td>' .
-                                                '<td>'.$item['modbus_function_code'].'</td>' .
-                                                '<td>'.$item['modbus_read_addr'].'</td>' .
-                                                '<td>'.$item['modbus_read_length'].'</td>' .
-                                                '<td>'.$item['modbus_write_addr'].'</td>' .
-                                                '<td>'.$item['modbus_write_value'].'</td>' .
-                                                '<td><a title="删除" class="btn btn-default btn-xs" onclick="removeModbus(this)"><i class="fa fa-trash fa-fw"></i></a></td></tr>';
-                                            echo "{$modbus_item_text}";
-                                        }
-                                    }
-                                    ?>
-                                  </tbody>
-                              </table>
-                          </td>
-                      </tr>
 <?php
                     $has_created_time = (isset($a_filter[$id]['created']) && is_array($a_filter[$id]['created']));
                     $has_updated_time = (isset($a_filter[$id]['updated']) && is_array($a_filter[$id]['updated']));
@@ -1948,6 +1970,12 @@ endforeach;?>
                                 <td>MODBUS写起始地址</td>
                                 <td>
                                     <input name="modbus_write_addr" id="modbus_write_addr" type="text" value=""/>
+                                </td>
+                            </tr>
+                            <tr class="modbus_write_length hidden">
+                                <td>MODBUS写起长度</td>
+                                <td>
+                                    <input name="modbus_write_length" id="modbus_write_length" type="text" value=""/>
                                 </td>
                             </tr>
                             <tr class="modbus_write_value hidden">

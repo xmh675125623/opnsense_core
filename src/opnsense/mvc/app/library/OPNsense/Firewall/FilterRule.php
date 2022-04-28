@@ -52,6 +52,7 @@ class FilterRule extends Rule
         'os' => 'parsePlain, os {","}',
         'to' => 'parsePlainCurly,to ',
         'to_port' => 'parsePlainCurly, port ',
+        'modbus-value' => 'parseModbus',
         'icmp-type' => 'parsePlain,icmp-type {,}',
         'icmp6-type' => 'parsePlain,icmp6-type {,}',
         'flags' => 'parsePlain, flags ',
@@ -289,67 +290,80 @@ class FilterRule extends Rule
         $ruleTxt = '';
         foreach ($this->parseFilterRules() as $rule) {
             $ruleTxt .= $this->ruleToText($this->procorder, $rule);
-
-            //拼接modbus
-
-            if (isset($rule['modbus-value']) && !empty($rule['modbus-value'])) {
-                $ruleTxt.= ' dpi modbus ';
-                $modbus_type_text = '';
-                $modbus_function_code_text = '';
-                $modbus_read_addr_text = '';
-                $modbus_read_length_text = '';
-                $modbus_write_addr_text = '';
-                $modbus_write_value_text = '';
-                $modbus_values = json_decode($rule['modbus-value']);
-                for ($x = 0; $x < count($modbus_values); $x ++) {
-                    $modbus_item = $modbus_values[$x];
-                    $item_json = json_decode($modbus_item, true);
-
-                    if ($item_json['modbus_type'] == 'read') {
-                        $modbus_type_text.= '1';
-                    } else if ($item_json['modbus_type'] == 'write') {
-                        $modbus_type_text.= '2';
-                    } else {
-                        $modbus_type_text.= '0';
-                    }
-
-                    if (empty($item_json['modbus_function_code']) || $item_json['modbus_function_code'] == "all") {
-                        $modbus_function_code_text .= '0';
-                    } else {
-                        $modbus_function_code_text .= $item_json['modbus_function_code'];
-                    }
-
-                    if (empty($item_json['modbus_read_addr'])) {
-                        $modbus_read_addr_text .= '0';
-                    } else {
-                        $modbus_read_addr_text .= $item_json['modbus_read_addr'];
-                    }
-
-                    $modbus_read_length_text .= (empty($item_json['modbus_read_length']) ? "0":$item_json['modbus_read_length']);
-                    $modbus_write_addr_text .= (empty($item_json['modbus_write_addr']) ? "0":$item_json['modbus_write_addr']);
-                    $modbus_write_value_text .= (empty($item_json['modbus_write_value']) ? "0":$item_json['modbus_write_value']);
-
-                    if ($x < count($modbus_values) - 1) {
-                        $modbus_type_text.= ',';
-                        $modbus_function_code_text.=',';
-                        $modbus_read_addr_text.=',';
-                        $modbus_read_length_text .= ',';
-                        $modbus_write_addr_text .= ',';
-                        $modbus_write_value_text .= ',';
-
-                    }
-                }
-                $modbus_type_text = '"'.$modbus_type_text.'"';
-                $modbus_function_code_text = '"'.$modbus_function_code_text.'"';
-                $modbus_read_addr_text = '"'.$modbus_read_addr_text.'"';
-                $modbus_read_length_text = '"'.$modbus_read_length_text.'"';
-                $modbus_write_addr_text = '"'.$modbus_write_addr_text.'"';
-                $modbus_write_value_text = '"'.$modbus_write_value_text.'"';
-                $ruleTxt.= ' '.$modbus_type_text.' '.$modbus_function_code_text.' '.$modbus_read_addr_text.' '.$modbus_read_length_text.' '.$modbus_write_addr_text.' '.$modbus_write_value_text;
-            }
-
             $ruleTxt.= "\n";
         }
         return $ruleTxt;
+    }
+
+    /**
+     * parse modbus settings
+     * @param array $value state option
+     * @return string
+     */
+    protected function parseModbus($value)
+    {
+        $retval = "";
+        //拼接modbus
+
+        if (isset($value) && !empty($value)) {
+            $retval.= ' dpi modbus ';
+            $modbus_type_text = '';
+            $modbus_function_code_text = '';
+            $modbus_read_addr_text = '';
+            $modbus_read_length_text = '';
+            $modbus_write_addr_text = '';
+            $modbus_write_length_text = '';
+            $modbus_write_value_text = '';
+            $modbus_values = json_decode($value);
+            for ($x = 0; $x < count($modbus_values); $x ++) {
+                $modbus_item = $modbus_values[$x];
+                $item_json = json_decode($modbus_item, true);
+
+                if ($item_json['modbus_type'] == 'read') {
+                    $modbus_type_text.= '1';
+                } else if ($item_json['modbus_type'] == 'write') {
+                    $modbus_type_text.= '2';
+                } else {
+                    $modbus_type_text.= '0';
+                }
+
+                if (empty($item_json['modbus_function_code']) || $item_json['modbus_function_code'] == "all") {
+                    $modbus_function_code_text .= '0';
+                } else {
+                    $modbus_function_code_text .= $item_json['modbus_function_code'];
+                }
+
+                if (empty($item_json['modbus_read_addr'])) {
+                    $modbus_read_addr_text .= '0';
+                } else {
+                    $modbus_read_addr_text .= $item_json['modbus_read_addr'];
+                }
+
+                $modbus_read_length_text .= (empty($item_json['modbus_read_length']) ? "0":$item_json['modbus_read_length']);
+                $modbus_write_addr_text .= (empty($item_json['modbus_write_addr']) ? "0":$item_json['modbus_write_addr']);
+                $modbus_write_length_text .= (empty($item_json['modbus_write_length']) ? "0":$item_json['modbus_write_length']);
+                $modbus_write_value_text .= (empty($item_json['modbus_write_value']) ? "0":$item_json['modbus_write_value']);
+
+                if ($x < count($modbus_values) - 1) {
+                    $modbus_type_text.= ',';
+                    $modbus_function_code_text.=',';
+                    $modbus_read_addr_text.=',';
+                    $modbus_read_length_text .= ',';
+                    $modbus_write_addr_text .= ',';
+                    $modbus_write_length_text .= ',';
+                    $modbus_write_value_text .= ',';
+
+                }
+            }
+            $modbus_type_text = '"'.$modbus_type_text.'"';
+            $modbus_function_code_text = '"'.$modbus_function_code_text.'"';
+            $modbus_read_addr_text = '"'.$modbus_read_addr_text.'"';
+            $modbus_read_length_text = '"'.$modbus_read_length_text.'"';
+            $modbus_write_addr_text = '"'.$modbus_write_addr_text.'"';
+            $modbus_write_length_text = '"'.$modbus_write_length_text.'"';
+            $modbus_write_value_text = '"'.$modbus_write_value_text.'"';
+            $retval.= ' '.$modbus_type_text.' '.$modbus_function_code_text.' '.$modbus_read_addr_text.' '.$modbus_read_length_text.' '.$modbus_write_addr_text.' '.$modbus_write_length_text.' '.$modbus_write_value_text;
+        }
+        return $retval;
     }
 }
