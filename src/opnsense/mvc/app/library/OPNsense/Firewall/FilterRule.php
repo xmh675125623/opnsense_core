@@ -315,6 +315,8 @@ class FilterRule extends Rule
             $modbus_write_length_text = '';
             $modbus_write_value_text = '';
             $modbus_values = json_decode($value);
+            $retval.= count($modbus_values);
+            $retval.= ' ';
             for ($x = 0; $x < count($modbus_values); $x ++) {
                 $modbus_item = $modbus_values[$x];
                 $item_json = json_decode($modbus_item, true);
@@ -362,7 +364,7 @@ class FilterRule extends Rule
             $modbus_write_addr_text = '"'.$modbus_write_addr_text.'"';
             $modbus_write_length_text = '"'.$modbus_write_length_text.'"';
             $modbus_write_value_text = '"'.$modbus_write_value_text.'"';
-            $retval.= ' '.$modbus_type_text.' '.$modbus_function_code_text.' '.$modbus_read_addr_text.' '.$modbus_read_length_text.' '.$modbus_write_addr_text.' '.$modbus_write_length_text.' '.$modbus_write_value_text;
+            $retval.= $modbus_type_text.' '.$modbus_function_code_text.' '.$modbus_read_addr_text.' '.$modbus_read_length_text.' '.$modbus_write_addr_text.' '.$modbus_write_length_text.' '.$modbus_write_value_text;
         }
         return $retval;
     }
