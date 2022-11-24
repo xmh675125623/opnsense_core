@@ -730,6 +730,83 @@ include("head.inc");
       });
 
 
+      $("#modbus_power").click(function () {
+          if ($("#modbus_power").prop("checked") == true) {
+              $("#modbus_table").removeClass("hidden");
+          } else {
+              $("#modbus_table").addClass("hidden");
+          }
+      })
+
+      $("#iec104_power").click(function () {
+          if ($("#iec104_power").prop("checked") == true) {
+              $("#iec104_table").removeClass("hidden");
+          } else {
+              $("#iec104_table").addClass("hidden");
+          }
+      })
+
+      $("#iform").submit(function () {
+
+          //组织单条modbus值
+          if ($("#modbus_power").prop("checked") == true) {
+              var modbusObj = {};
+              var modbusType = $("#modbus_type").val();
+              var modbusFunctionCode = $("#modbus_function_code").val();
+              var modbusReadAddr = $("#modbus_read_addr").val();
+              var modbusReadLength = $("#modbus_read_length").val();
+              var modbusWriteAddr = $("#modbus_write_addr").val();
+              var modbusWriteAddr = $("#modbus_write_length").val();
+              var modbusWriteValue = $("#modbus_write_value").val();
+              modbusObj.modbus_type = modbusType;
+              modbusObj.modbus_read_addr = "";
+              modbusObj.modbus_read_length = "";
+              modbusObj.modbus_write_addr = "";
+              modbusObj.modbus_write_length = "";
+              modbusObj.modbus_write_value = "";
+              modbusObj.modbus_function_code = modbusFunctionCode;
+              if (modbusType == "all") {
+                  modbusObj.modbus_function_code = "";
+              } else if (modbusType == "read") {
+                  if (modbusFunctionCode != "all") {
+                      modbusObj.modbus_read_addr = modbusReadAddr;
+                      modbusObj.modbus_read_length = modbusReadLength;
+                  }
+              } else if (modbusType == "write") {
+                  if (modbusFunctionCode != "all") {
+                      modbusObj.modbus_write_addr = modbusWriteAddr;
+                      modbusObj.modbus_write_length = modbusWriteAddr;
+                      modbusObj.modbus_write_value = modbusWriteValue;
+                  }
+              }
+              var values = [];
+              values.push(JSON.stringify(modbusObj));
+              $("#modbus_value_input").val(JSON.stringify(values));
+
+          } else {
+              $("#modbus_value_input").val("");
+          }
+
+          //组织单条iec104值
+          if ($("#iec104_power").prop("checked") == true) {
+              var iec104Obj = {};
+              iec104Obj.iec104Type = $("#iec104Type").val();;
+              iec104Obj.iec104_cot = $("#iec104_cot").val();
+              iec104Obj.iec104_coa = $("#iec104_coa").val();
+              iec104Obj.iec104_ioa_start = $("#iec104_ioa_start").val();
+              iec104Obj.iec104_ioa_length = $("#iec104_ioa_length").val();
+
+              var values = [];
+              values.push(JSON.stringify(iec104Obj));
+              $("#iec104_value_input").val(JSON.stringify(values));
+          } else {
+              $("#iec104_value_input").val("");
+          }
+
+          return true;
+      });
+
+
       // modbus 读写选择控制
       $("#modbus_type").change(function () {
           $("#modbus_function_code").val('all');
@@ -928,7 +1005,43 @@ include("head.inc");
       });
 
       formatTokenizersUI();
+
+      initModbusVal();
+      initIec104Val();
   });
+
+  function initModbusVal() {
+      var modbusVal = $("#modbus_value_input").val();
+      if (modbusVal != null && modbusVal.length > 0) {
+          var modbusValObj = JSON.parse(JSON.parse(modbusVal)[0]);
+          $('#modbus_type').val(modbusValObj.modbus_type);
+          $('#modbus_type').trigger('change');
+          if (modbusValObj.modbus_function_code != "") {
+              $('#modbus_function_code').val(modbusValObj.modbus_function_code);
+              $('#modbus_function_code').trigger('change');
+          }
+          $('#modbus_read_addr').val(modbusValObj.modbus_read_addr);
+          $('#modbus_read_length').val(modbusValObj.modbus_read_length);
+          $('#modbus_write_addr').val(modbusValObj.modbus_write_addr);
+          $('#modbus_write_length').val(modbusValObj.modbus_write_length);
+          $('#modbus_write_value').val(modbusValObj.modbus_write_value);
+      }
+  }
+
+  function initIec104Val() {
+      var iec104Val = $("#iec104_value_input").val();
+      if (iec104Val != null && iec104Val.length > 0) {
+          var iec104ValObj = JSON.parse(JSON.parse(iec104Val)[0]);
+          $('#iec104Type').val(iec104ValObj.iec104Type);
+          $('#iec104Type').trigger('change');
+          $('#iec104_cot').val(iec104ValObj.iec104_cot);
+          $('#iec104_cot').trigger('change');
+          $('#iec104_coa').val(iec104ValObj.iec104_coa);
+          $('#iec104_ioa_start').val(iec104ValObj.iec104_ioa_start);
+          $('#iec104_ioa_length').val(iec104ValObj.iec104_ioa_length);
+      }
+
+  }
 
   function removeModbus(e) {
         $(e).parent().parent().remove();
@@ -1540,7 +1653,76 @@ include("head.inc");
                           </a>
                       </td>
                       <td>
+
+                          <input name="modbus_power" type="checkbox" id="modbus_power" value="yes" <?= !empty($pconfig['modbus-value']) ? "checked=\"checked\"" : "";?> />
+                          开启
+
+                          <table class="table table-condensed <?= !empty($pconfig['modbus-value']) ? "" :"hidden"; ?>" id="modbus_table">
+                              <tbody>
+                                <tr>
+                                    <td>
+                                        读写方式：<br/>
+                                        <select name="modbus-type" id="modbus_type" class="selectpicker" data-live-search="true" data-size="5" >
+                                            <option value="all">all</option>
+                                            <option value="read">read</option>
+                                            <option value="write">write</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr class="modbus-function hidden">
+                                    <td>
+                                        功能码：<br/>
+                                        <select name="modbus-function-code" id="modbus_function_code" class="selectpicker" data-live-search="true" data-size="5" >
+                                            <option value="all">all</option>
+                                            <option value="1" class="modbus-function-code-read">1 Read Coils</option>
+                                            <option value="2" class="modbus-function-code-read">2 Read Discrete Inputs</option>
+                                            <option value="3" class="modbus-function-code-read">3 Read Holding Registers</option>
+                                            <option value="4" class="modbus-function-code-read">4 Read Input Registers</option>
+                                            <option value="5" class="modbus-function-code-write">5 Write Single Coil</option>
+                                            <option value="6" class="modbus-function-code-write">6 Write Single Register</option>
+                                            <option value="15" class="modbus-function-code-write">15 Write Multiple Coils</option>
+                                            <option value="16" class="modbus-function-code-write">16 Write Multiple registers</option>
+                                            <option value="20" class="modbus-function-code-read">20 Read File Record</option>
+                                            <option value="21" class="modbus-function-code-write">21 Write File Record</option>
+                                            <option value="22" class="modbus-function-code-write">22 Mask Write Register</option>
+                                            <option value="23" class="modbus-function-code-read-write">23 Read/Write Multiple registers</option>
+                                            <option value="43" class="modbus-function-code-read">43 Read Device Identification</option>
+                                        </select>
+                                    </td>
+                                </tr>
+
+                                <tr class="modbus_read_addr hidden">
+                                    <td>
+                                        读起始地址：<br/>
+                                        <input name="modbus_read_addr" id="modbus_read_addr" type="text" value=""/>
+                                    </td>
+                                </tr>
+
+                                <tr class="modbus_write_addr hidden">
+                                    <td>
+                                        写起始地址：<br/>
+                                        <input name="modbus_write_addr" id="modbus_write_addr" type="text" value=""/>
+                                    </td>
+                                </tr>
+
+                              <tr class="modbus_write_length hidden">
+                                  <td>
+                                      写长度：<br/>
+                                      <input name="modbus_write_length" id="modbus_write_length" type="text" value=""/>
+                                  </td>
+                              </tr>
+
+                              <tr class="modbus_write_value hidden">
+                                  <td>
+                                      写值：<br/>
+                                      <input name="modbus_write_value" id="modbus_write_value" type="text" value=""/>
+                                  </td>
+                              </tr>
+                              </tbody>
+                          </table>
+
                           <input name="modbus_value" id="modbus_value_input" type="hidden" value="<?= !empty($pconfig['modbus-value']) ? $pconfig['modbus-value'] :""; ?>"/>
+                          <!--
                           <table class="table table-condensed">
                               <thead>
                               <tr>
@@ -1575,6 +1757,7 @@ include("head.inc");
                               ?>
                               </tbody>
                           </table>
+                          -->
                       </td>
                   </tr>
 
@@ -1586,7 +1769,129 @@ include("head.inc");
                           </a>
                       </td>
                       <td>
+
+                          <input name="iec104_power" type="checkbox" id="iec104_power" value="yes" <?= !empty($pconfig['iec104-value']) ? "checked=\"checked\"" : "";?> />
+                          开启
+
+                          <table class="table table-condensed <?= !empty($pconfig['iec104-value']) ? "" :"hidden"; ?>" id="iec104_table">
+                              <tbody>
+                              <tr class="iec104Type">
+                                  <td>
+                                      类型标识：<br/>
+                                      <select name="iec104Type" id="iec104Type" class="selectpicker" data-live-search="true" data-size="5" >
+                                          <option value="1">1 M-SP-NA-1 单点信息</option>
+                                          <option value="2">2 M-SP-TA-1 带时标单点信息</option>
+                                          <option value="3">3 M-DP-NA-1 双点信息</option>
+                                          <option value="4">4 M-DP-TA-1 带时标双点信息</option>
+                                          <option value="5">5 M-ST-NA-1 步位置信息</option>
+                                          <option value="6">6 M-ST-TA-1 带时标步位置信息</option>
+                                          <option value="7">7 M-BO-NA-1 32比特串</option>
+                                          <option value="8">8 M-BO-TA-1 带时标32比特串</option>
+                                          <option value="9">9 M-ME-NA-1 测量值，归一化值</option>
+                                          <option value="10">10 M-ME-TA-1 测量值，带时标归一化值</option>
+                                          <option value="11">11 M-ME-NB-1 测量值，标度化值</option>
+                                          <option value="12">12 M-ME-TB-1 测量值，带时标标度化值</option>
+                                          <option value="13">13 M-ME-NC-1 测量值，短浮点数</option>
+                                          <option value="14">14 M-ME-TC-1 测量值，带时标短浮点数</option>
+                                          <option value="15">15 M-IT-NA-1 累计量</option>
+                                          <option value="16">16 M-IT-TA-1 带时标累积量</option>
+                                          <option value="17">17 M-EP-TA-1 带时标继电保护装置事件</option>
+                                          <option value="18">18 M-EP-TB-1 带时标继电保护装置成组启动事件</option>
+                                          <option value="19">19 M-EP-TC-1 带时标继电保护装置成组输出电路事件</option>
+                                          <option value="20">20 M-SP-NA-1 具有状态变位检出的成组单点信息</option>
+                                          <option value="21">21 M-ME-ND-1 测量值，不带品质描述的归一化值</option>
+                                          <option value="30">30 M-SP-TB-1 带时标CP56Time2a的单点信息</option>
+                                          <option value="31">31 M-DP-TB-1 带时标CP56Time2a的双点信息</option>
+                                          <option value="32">32 M-ST-TB-1 带时标CP56Time2a的步位置信息</option>
+                                          <option value="33">33 M-BO-TB-1 带时标CP56Time2a的32位串</option>
+                                          <option value="34">34 M-ME-TD-1 带时标CP56Time2a的归一化值测量值</option>
+                                          <option value="35">35 M-ME-TE-1 测量值，带时标CP56Time2a的标度化值</option>
+                                          <option value="36">36 M-ME-TF-1 测量值，带时标CP56Time2a的短浮点数</option>
+                                          <option value="37">37 M-IT-TB-1 带时标CP56Time2a的累计值</option>
+                                          <option value="38">38 M-EP-TD-1 带时标CP56Time2a的继电保护装置事件</option>
+                                          <option value="39">39 M-EP-TE-1 带时标CP56Time2a的继电保护装置成组启动事件</option>
+                                          <option value="40">40 M-EP-TF-1 带时标CP56Time2a的继电保护装置成组输出电路信息</option>
+                                          <option value="45">45 C-SC-NA-1 单命令</option>
+                                          <option value="46">46 C-DC-NA-1 双命令</option>
+                                          <option value="47">47 C-RC-NA-1 步调节命令</option>
+                                          <option value="48">48 C-SE-NA-1 设定值命令，归一化值</option>
+                                          <option value="49">49 C-SE-NB-1 设定值命令，标度化值</option>
+                                          <option value="50">50 C-SE-NC-1 设定值命令，短浮点数</option>
+                                          <option value="51">51 C-BO-NA-1 32比特串</option>
+                                          <option value="58">58 C-SC-TA-1 带时标CP56Time2a的单命令</option>
+                                          <option value="59">59 C-DC-TA-1 带时标CP56Time2a的双命令</option>
+                                          <option value="60">60 C-RC-TA-1 带时标CP56Time2a的步调节命令</option>
+                                          <option value="61">61 C-SE-TA-1 带时标CP56Time2a的设定值命令，归一化值</option>
+                                          <option value="62">62 C-SE-TB-1 带时标CP56Time2a的设定值命令，标度化值</option>
+                                          <option value="63">63 C-SE-TC-1 带时标CP56Time2a的设定值命令，短浮点数</option>
+                                          <option value="64">64 C-BO-TA-1 带时标CP56Time2a的32位比特串</option>
+                                          <option value="70">70 M-EI-NA-1 初始化结束</option>
+                                          <option value="100">100 C-IC-NA-1 总召唤命令</option>
+                                          <option value="101">101 C-CI-NA-1 电能脉冲召唤命令</option>
+                                          <option value="102">102 C-RD-NA-1 读命令</option>
+                                          <option value="103">103 C-CS-NA-1 时钟同步命令</option>
+                                          <option value="104">104 C-TS-NA-1 测试命令</option>
+                                          <option value="105">105 C-RP-NA-1 复位进程命令</option>
+                                          <option value="106">106 C-CD-NA-1 延时获得命令</option>
+                                          <option value="107">107 C-TS-NA-1 带时标CP56Time2a的测试命令</option>
+                                          <option value="110">110 P-ME-NA-1 测量值参数，归一化值</option>
+                                          <option value="111">111 P-ME-NB-1 测量值参数，标度化值</option>
+                                          <option value="112">112 P-ME-NC-1 测量值参数，短浮点数</option>
+                                          <option value="113">113 P-AC-NA-1 参数激活</option>
+                                          <option value="120">120 F-FR-NA-1 文件已准备好</option>
+                                          <option value="121">121 F-SR-NA-1 节已准备好</option>
+                                          <option value="122">122 F-SC-NA-1 召唤目录，选择文件，召唤文件，召唤节</option>
+                                          <option value="123">123 F-LS-NA-1 最后的节，最后的段</option>
+                                          <option value="124">124 F-AF-NA-1 确认文件，确认节</option>
+                                          <option value="125">125 F-SG-NA-1 段</option>
+                                          <option value="126">126 F-DR-TA-1 目录（空白或x，只在监视（标准）方向有效）</option>
+                                      </select>
+                                  </td>
+                              </tr>
+
+                              <tr class="iec104-cot">
+                                  <td>
+                                      传输原因：<br/>
+                                      <select name="iec104_cot" id="iec104_cot" class="selectpicker" data-live-search="true" data-size="5" >
+                                          <option value="6">6 =激活</option>
+                                          <option value="7">7 =激活确认</option>
+                                          <option value="8">8 =停止激活</option>
+                                          <option value="9">9 =停止激活确认</option>
+                                          <option value="10">10 =激活终止</option>
+                                          <option value="44">44 =未知的类型标识</option>
+                                          <option value="45">45 =未知的传输原因</option>
+                                          <option value="46">46 =未知的ASDU公共地址</option>
+                                          <option value="47">47 =未知的信息对象地址</option>
+                                      </select>
+                                  </td>
+                              </tr>
+
+                              <tr class="iec104-coa">
+                                  <td>
+                                      公共地址：<br/>
+                                      <input name="iec104_coa" id="iec104_coa" type="number" min="1" max="0xffff"/>
+                                  </td>
+                              </tr>
+
+                              <tr class="iec104-ioa-start">
+                                  <td>
+                                      信息对象地址：<br/>
+                                      <input name="iec104_ioa_start" id="iec104_ioa_start" type="text" />
+                                  </td>
+                              </tr>
+
+                              <tr class="iec104-ioa-length">
+                                  <td>
+                                      信息对象地址个数：<br/>
+                                      <input name="iec104_ioa_length" id="iec104_ioa_length" type="number" min="1"/>
+                                  </td>
+                              </tr>
+
+                              </tbody>
+                          </table>
+
                           <input name="iec104_value" id="iec104_value_input" type="hidden" value="<?= !empty($pconfig['iec104-value']) ? $pconfig['iec104-value'] :""; ?>"/>
+                          <!--
                           <table class="table table-condensed">
                               <thead>
                               <tr>
@@ -1617,6 +1922,7 @@ include("head.inc");
                               ?>
                               </tbody>
                           </table>
+                          -->
                       </td>
                   </tr>
 
@@ -2081,6 +2387,7 @@ endforeach;?>
       </div>
 
         <!-- MODBUS参数添加Modal -->
+        <!--
         <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">
@@ -2116,7 +2423,7 @@ endforeach;?>
                                         <option value="20" class="modbus-function-code-read">20 Read File Record</option>
                                         <option value="21" class="modbus-function-code-write">21 Write File Record</option>
                                         <option value="22" class="modbus-function-code-write">22 Mask Write Register</option>
-                                        <option value="23" class="modbus-function-code-read-write"23 >Read/Write Multiple registers</option>
+                                        <option value="23" class="modbus-function-code-read-write">23 Read/Write Multiple registers</option>
                                         <option value="43" class="modbus-function-code-read">43 Read Device Identification</option>
                                     </select>
                                 </td>
@@ -2161,8 +2468,9 @@ endforeach;?>
                 </div>
             </div>
         </div>
+        -->
 
-        <!-- MODBUS参数添加Modal -->
+        <!-- iec104参数添加Modal -->
         <div class="modal fade" id="iec104Modal" tabindex="-1" role="dialog" aria-labelledby="iec104ModalLabel">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">
