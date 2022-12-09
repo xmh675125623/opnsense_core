@@ -131,6 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'tcpflags2',
         'tcpflags_any',
         'type',
+        'dpi-type',
         'modbus-value',
         'iec104-value'
     );
@@ -600,6 +601,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
           $pconfig['dstmask'], !empty($pconfig['dstnot']),
           $pconfig['dstbeginport'], $pconfig['dstendport']);
 
+        $filterent['dpi-type'] = $pconfig['dpi_type'];
         $filterent['modbus-value'] = $pconfig['modbus_value'];
         $filterent['iec104-value'] = $pconfig['iec104_value'];
 
@@ -729,27 +731,32 @@ include("head.inc");
 
       });
 
+      $("#dpi_type").change(function () {
+          var dpiType = $("#dpi_type").val();
 
-      $("#modbus_power").click(function () {
-          if ($("#modbus_power").prop("checked") == true) {
-              $("#modbus_table").removeClass("hidden");
-          } else {
-              $("#modbus_table").addClass("hidden");
+          $(".opt_dpi").addClass("hidden");
+          if (dpiType == 'modbus') {
+              $(".opt_dpi_modbus").removeClass("hidden");
+          } else if (dpiType == 'iec104') {
+              $(".opt_dpi_iec104").removeClass("hidden");
           }
+
       })
 
-      $("#iec104_power").click(function () {
-          if ($("#iec104_power").prop("checked") == true) {
-              $("#iec104_table").removeClass("hidden");
-          } else {
-              $("#iec104_table").addClass("hidden");
-          }
-      })
 
       $("#iform").submit(function () {
 
+          var dpiType = $("#dpi_type").val();
+
+          $("#modbus_value_input").val("");
+          $("#iec104_value_input").val("");
+
+          if (dpiType == "none") {
+              return true;
+          }
+
           //组织单条modbus值
-          if ($("#modbus_power").prop("checked") == true) {
+          if (dpiType == "modbus") {
               var modbusObj = {};
               var modbusType = $("#modbus_type").val();
               var modbusFunctionCode = $("#modbus_function_code").val();
@@ -783,12 +790,8 @@ include("head.inc");
               values.push(JSON.stringify(modbusObj));
               $("#modbus_value_input").val(JSON.stringify(values));
 
-          } else {
-              $("#modbus_value_input").val("");
-          }
-
-          //组织单条iec104值
-          if ($("#iec104_power").prop("checked") == true) {
+          } else if (dpiType == "iec104") {
+              //组织单条iec104值
               var iec104Obj = {};
               iec104Obj.iec104Type = $("#iec104Type").val();;
               iec104Obj.iec104_cot = $("#iec104_cot").val();
@@ -799,8 +802,6 @@ include("head.inc");
               var values = [];
               values.push(JSON.stringify(iec104Obj));
               $("#iec104_value_input").val(JSON.stringify(values));
-          } else {
-              $("#iec104_value_input").val("");
           }
 
           return true;
@@ -886,11 +887,6 @@ include("head.inc");
       // show / hide advanced Options
       $("#toggleAdvanced").click(function(){
           $(".opt_advanced").toggleClass("visible hidden");
-      });
-
-      // show / hide dpi Options
-      $("#toggleDpi").click(function(){
-          $(".opt_dpi").toggleClass("visible hidden");
       });
 
       // init
@@ -1639,30 +1635,35 @@ include("head.inc");
                   </tr>
 
                   <tr>
-                      <td>DPI Options</td>
+                      <td><a id="help_for_dpi_type" href="#" class="showhelp"><i class="fa fa-info-circle"></i></a> DPI</td>
                       <td>
-                          <input id="toggleDpi" type="button" class="btn btn-default" value="<?= html_safe(gettext('Show/Hide')) ?>" />
+                          <select name="dpi_type" id="dpi_type" class="selectpicker" data-live-search="true" data-size="10">
+                              <option value="none" <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type'] == "none" ? "selected=\"selected\"" : ""; ?>>none</option>
+                              <option value="modbus" <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type'] == "modbus" ? "selected=\"selected\"" : ""; ?>>MODBUS</option>
+                              <option value="iec104" <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type'] == "iec104" ? "selected=\"selected\"" : ""; ?>>IEC104</option>
+                              <option value="opc_da" <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type'] == "opc_da" ? "selected=\"selected\"" : ""; ?>>OPC DA</option>
+                              <option value="opc_ua" <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type'] == "opc_ua" ? "selected=\"selected\"" : ""; ?>>OPC UA</option>
+                              <option value="profinet" <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type'] == "profinet" ? "selected=\"selected\"" : ""; ?>>PROFINET</option>
+                              <option value="eip" <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type'] == "eip" ? "selected=\"selected\"" : ""; ?>>EIP</option>
+                              <option value="dnp3" <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type'] == "dnp3" ? "selected=\"selected\"" : ""; ?>>DNP3</option>
+                              <option value="s7" <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type'] == "s7" ? "selected=\"selected\"" : ""; ?>>S7</option>
+                          </select>
+                          <div class="hidden" data-for="help_for_dpi_type">
+                              对工控协议进行深度检查。
+                          </div>
                       </td>
                   </tr>
 
-                  <tr class="opt_dpi <?= !empty($pconfig['modbus-value'])||!empty($pconfig['iec104-value']) ? "" :"hidden"; ?>">
-                      <td>
-                          MODBUS参数
-                          <a  onclick="showAddModbusModal()" title="添加" class="btn btn-default btn-xs">
-                              <i class="fa fa-plus-circle fa-fw"></i>
-                          </a>
-                      </td>
+                  <tr class="opt_dpi opt_dpi_modbus <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type']=='modbus' ? "" :"hidden"; ?>">
+                      <td></td>
                       <td>
 
-                          <input name="modbus_power" type="checkbox" id="modbus_power" value="yes" <?= !empty($pconfig['modbus-value']) ? "checked=\"checked\"" : "";?> />
-                          开启
-
-                          <table class="table table-condensed <?= !empty($pconfig['modbus-value']) ? "" :"hidden"; ?>" id="modbus_table">
+                          <table class="table table-condensed" id="modbus_table">
                               <tbody>
                                 <tr>
                                     <td>
                                         读写方式：<br/>
-                                        <select name="modbus-type" id="modbus_type" class="selectpicker" data-live-search="true" data-size="5" >
+                                        <select name="modbus_type" id="modbus_type" class="selectpicker" data-live-search="true" data-size="5" >
                                             <option value="all">all</option>
                                             <option value="read">read</option>
                                             <option value="write">write</option>
@@ -1722,58 +1723,15 @@ include("head.inc");
                           </table>
 
                           <input name="modbus_value" id="modbus_value_input" type="hidden" value="<?= !empty($pconfig['modbus-value']) ? $pconfig['modbus-value'] :""; ?>"/>
-                          <!--
-                          <table class="table table-condensed">
-                              <thead>
-                              <tr>
-                                  <td>读写方式</td>
-                                  <td>功能码</td>
-                                  <td>读起始地址</td>
-                                  <td>读长度</td>
-                                  <td>写起始地址</td>
-                                  <td>写长度</td>
-                                  <td>写值</td>
-                                  <td>操作</td>
-                              </tr>
-                              </thead>
-                              <tbody  id="modbus_param">
-                              <?php
-                              if (!empty($pconfig['modbus_item'])) {
-                                  foreach ($pconfig['modbus_item'] as $item) {
-                                      $modbus_item_text = '<tr class="modbus_values" value="'.$item['modbus_value'].'"><td>'.$item['modbus_type'].'</td>' .
-                                          '<td>'.$item['modbus_function_code'].'</td>' .
-                                          '<td>'.$item['modbus_read_addr'].'</td>' .
-                                          '<td>'.$item['modbus_read_length'].'</td>' .
-                                          '<td>'.$item['modbus_write_addr'].'</td>' .
-                                          '<td>'.$item['modbus_write_length'].'</td>' .
-                                          '<td>'.$item['modbus_write_value'].'</td>' .
-                                          '<td>' .
-                                            '<a title="编辑" class="btn btn-default btn-xs" onclick="editModbus(this)"><i class="fa fa-pencil fa-fw"></i></a> ' .
-                                            '<a title="删除" class="btn btn-default btn-xs" onclick="removeModbus(this)"><i class="fa fa-trash fa-fw"></i></a>' .
-                                          '</td></tr>';
-                                      echo "{$modbus_item_text}";
-                                  }
-                              }
-                              ?>
-                              </tbody>
-                          </table>
-                          -->
                       </td>
                   </tr>
 
-                  <tr class="opt_dpi <?= !empty($pconfig['modbus-value'])||!empty($pconfig['iec104-value']) ? "" :"hidden"; ?>">
+                  <tr class="opt_dpi opt_dpi_iec104 <?= !empty($pconfig['dpi-type'])&&$pconfig['dpi-type']=='iec104' ? "" :"hidden"; ?>">
                       <td>
-                          IEC104参数
-                          <a  onclick="showIEC104AddModal()" title="添加" class="btn btn-default btn-xs">
-                              <i class="fa fa-plus-circle fa-fw"></i>
-                          </a>
                       </td>
                       <td>
 
-                          <input name="iec104_power" type="checkbox" id="iec104_power" value="yes" <?= !empty($pconfig['iec104-value']) ? "checked=\"checked\"" : "";?> />
-                          开启
-
-                          <table class="table table-condensed <?= !empty($pconfig['iec104-value']) ? "" :"hidden"; ?>" id="iec104_table">
+                          <table class="table table-condensed" id="iec104_table">
                               <tbody>
                               <tr class="iec104Type">
                                   <td>
@@ -1891,38 +1849,6 @@ include("head.inc");
                           </table>
 
                           <input name="iec104_value" id="iec104_value_input" type="hidden" value="<?= !empty($pconfig['iec104-value']) ? $pconfig['iec104-value'] :""; ?>"/>
-                          <!--
-                          <table class="table table-condensed">
-                              <thead>
-                              <tr>
-                                  <td>类型标识</td>
-                                  <td>传输原因</td>
-                                  <td>公共地址</td>
-                                  <td>信息对象地址</td>
-                                  <td>信息对象地址个数</td>
-                                  <td>操作</td>
-                              </tr>
-                              </thead>
-                              <tbody  id="iec104_param">
-                              <?php
-                              if (!empty($pconfig['iec104_item'])) {
-                                  foreach ($pconfig['iec104_item'] as $item) {
-                                      $iec104_item_text = '<tr class="iec104_values" value="'.$item['iec104_value'].'"><td>'.$item['iec104Type'].'</td>' .
-                                          '<td>'.$item['iec104_cot'].'</td>' .
-                                          '<td>'.$item['iec104_coa'].'</td>' .
-                                          '<td>'.$item['iec104_ioa_start'].'</td>' .
-                                          '<td>'.$item['iec104_ioa_length'].'</td>' .
-                                          '<td>' .
-                                          '<a title="编辑" class="btn btn-default btn-xs" onclick="editIEC104(this)"><i class="fa fa-pencil fa-fw"></i></a> ' .
-                                          '<a title="删除" class="btn btn-default btn-xs" onclick="removeIEC104(this)"><i class="fa fa-trash fa-fw"></i></a>' .
-                                          '</td></tr>';
-                                      echo "{$iec104_item_text}";
-                                  }
-                              }
-                              ?>
-                              </tbody>
-                          </table>
-                          -->
                       </td>
                   </tr>
 
