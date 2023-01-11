@@ -119,7 +119,7 @@ CORE_COMMENT?=		${CORE_PRODUCT} ${CORE_TYPE} release
 CORE_MAINTAINER?=	project@opnsense.org
 CORE_ORIGIN?=		opnsense/${CORE_NAME}
 CORE_PACKAGESITE?=	https://pkg.opnsense.org
-CORE_PRODUCT?=		OPNsense
+CORE_PRODUCT?=		工控安全防火墙
 CORE_WWW?=		https://opnsense.org/
 
 CORE_COPYRIGHT_HOLDER?=	Deciso B.V.
