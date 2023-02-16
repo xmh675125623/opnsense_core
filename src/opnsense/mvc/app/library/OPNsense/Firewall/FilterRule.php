@@ -307,6 +307,7 @@ class FilterRule extends Rule
 
         if (isset($value) && !empty($value)) {
             $retval.= ' dpi modbus ';
+            $modbus_device_id_text = '';
             $modbus_type_text = '';
             $modbus_function_code_text = '';
             $modbus_read_addr_text = '';
@@ -320,6 +321,8 @@ class FilterRule extends Rule
             for ($x = 0; $x < count($modbus_values); $x ++) {
                 $modbus_item = $modbus_values[$x];
                 $item_json = json_decode($modbus_item, true);
+
+                $modbus_device_id_text .= (empty($item_json['modbus_device_id']) ? "0":$item_json['modbus_device_id']);
 
                 if ($item_json['modbus_type'] == 'read') {
                     $modbus_type_text.= '1';
@@ -347,6 +350,7 @@ class FilterRule extends Rule
                 $modbus_write_value_text .= (empty($item_json['modbus_write_value']) ? "0":$item_json['modbus_write_value']);
 
                 if ($x < count($modbus_values) - 1) {
+                    $modbus_device_id_text.= ',';
                     $modbus_type_text.= ',';
                     $modbus_function_code_text.=',';
                     $modbus_read_addr_text.=',';
@@ -357,6 +361,7 @@ class FilterRule extends Rule
 
                 }
             }
+            $modbus_device_id_text = '"'.$modbus_device_id_text.'"';
             $modbus_type_text = '"'.$modbus_type_text.'"';
             $modbus_function_code_text = '"'.$modbus_function_code_text.'"';
             $modbus_read_addr_text = '"'.$modbus_read_addr_text.'"';
@@ -364,7 +369,7 @@ class FilterRule extends Rule
             $modbus_write_addr_text = '"'.$modbus_write_addr_text.'"';
             $modbus_write_length_text = '"'.$modbus_write_length_text.'"';
             $modbus_write_value_text = '"'.$modbus_write_value_text.'"';
-            $retval.= $modbus_type_text.' '.$modbus_function_code_text.' '.$modbus_read_addr_text.' '.$modbus_read_length_text.' '.$modbus_write_addr_text.' '.$modbus_write_length_text.' '.$modbus_write_value_text;
+            $retval.= $modbus_device_id_text.' '.$modbus_type_text.' '.$modbus_function_code_text.' '.$modbus_read_addr_text.' '.$modbus_read_length_text.' '.$modbus_write_addr_text.' '.$modbus_write_length_text.' '.$modbus_write_value_text;
         }
         return $retval;
     }

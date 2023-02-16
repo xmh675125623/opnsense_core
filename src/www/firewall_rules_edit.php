@@ -758,6 +758,7 @@ include("head.inc");
           //组织单条modbus值
           if (dpiType == "modbus") {
               var modbusObj = {};
+              var modbusDeviceId = $("#modbus_device_id").val();
               var modbusType = $("#modbus_type").val();
               var modbusFunctionCode = $("#modbus_function_code").val();
               var modbusReadAddr = $("#modbus_read_addr").val();
@@ -765,6 +766,7 @@ include("head.inc");
               var modbusWriteAddr = $("#modbus_write_addr").val();
               var modbusWriteAddr = $("#modbus_write_length").val();
               var modbusWriteValue = $("#modbus_write_value").val();
+              modbusObj.modbus_device_id = modbusDeviceId;
               modbusObj.modbus_type = modbusType;
               modbusObj.modbus_read_addr = "";
               modbusObj.modbus_read_length = "";
@@ -1010,6 +1012,7 @@ include("head.inc");
       var modbusVal = $("#modbus_value_input").val();
       if (modbusVal != null && modbusVal.length > 0) {
           var modbusValObj = JSON.parse(JSON.parse(modbusVal)[0]);
+          $('#modbus_device_id').val(modbusValObj.modbus_device_id);
           $('#modbus_type').val(modbusValObj.modbus_type);
           $('#modbus_type').trigger('change');
           if (modbusValObj.modbus_function_code != "") {
@@ -1660,6 +1663,12 @@ include("head.inc");
 
                           <table class="table table-condensed" id="modbus_table">
                               <tbody>
+                                  <tr>
+                                      <td>
+                                          设备ID：<br/>
+                                          <input name="modbus_device_id" id="modbus_device_id" type="text" value=""/>
+                                      </td>
+                                  </tr>
                                 <tr>
                                     <td>
                                         读写方式：<br/>
@@ -1696,6 +1705,13 @@ include("head.inc");
                                     <td>
                                         读起始地址：<br/>
                                         <input name="modbus_read_addr" id="modbus_read_addr" type="text" value=""/>
+                                    </td>
+                                </tr>
+
+                                <tr class="modbus_read_length hidden">
+                                    <td>
+                                        读长度：<br/>
+                                        <input name="modbus_read_length" id="modbus_read_length" type="text" value=""/>
                                     </td>
                                 </tr>
 
